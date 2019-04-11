@@ -1,13 +1,15 @@
 package com.wehotel.dubboconsumer;
 
+import com.alibaba.dubbo.config.spring.context.annotation.DubboComponentScan;
+import com.alibaba.dubbo.config.spring.context.annotation.EnableDubbo;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportResource;
 
-@ComponentScan("com.wehotel")
 @ImportResource({"classpath*:applicationContext*.xml"})
 @SpringBootApplication
+@EnableDubbo
+@DubboComponentScan("com.wehotel.*")
 public class DubboConsumerApplication {
 
     public static void main(String[] args) {

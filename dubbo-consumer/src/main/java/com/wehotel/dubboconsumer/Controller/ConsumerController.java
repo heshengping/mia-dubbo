@@ -1,14 +1,13 @@
 package com.wehotel.dubboconsumer.Controller;
 
+
 import com.alibaba.dubbo.config.annotation.Reference;
 import com.wehotel.dubboapi.service.DemoService;
 import com.wehotel.dubboconsumer.service.DubboService;
+import com.wehotel.dubboconsumer.service.SpringBootDubboService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 
 /**
  * @ClassName ConsumerController
@@ -22,8 +21,16 @@ import java.io.IOException;
 public class ConsumerController {
     @Autowired
     private DubboService dubboService;
+    @Autowired
+    private SpringBootDubboService springBootDubboService;
     @RequestMapping(value = "/test", method = RequestMethod.POST)
     public String getDemo(){
         return dubboService.get();
     }
+
+    @RequestMapping(value = "/test1", method = RequestMethod.POST)
+    public String getSpringDemo(){
+        return springBootDubboService.get();
+    }
+
 }
