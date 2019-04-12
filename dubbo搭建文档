@@ -1,4 +1,152 @@
 Spring boot + dubbo + zookeeper 搭建
 一 环境准备
-1 安装 zookeeper
-二 项目部署
+1 安装 zookeeper（windows）
+1）官网地址：http://zookeeper.apache.org/下载 zookeeper-3.4.14.tar.gz,解压到目录D:\Program Files下
+2）核心配置文件zoo.cfg
+初次使用 ZooKeeper 时, 需要将 $ZOOKEEPER_HOME/conf 目录下的 zoo_sample.cfg 重命名为 zoo.cfg
+单机模式
+zoo.cfg配置
+tickTime=2000
+initLimit=10
+syncLimit=5
+dataDir=D:\\Program Files\\zookeeper-3.4.14\\data
+dataLogDir=D:\\Program Files\\zookeeper-3.4.14\\log
+clientPort=2181
+配置说明
+tickTime: ZooKeeper 中使用的基本时间单元, 以毫秒为单位, 默认值是 2000。它用来调节心跳和超时。例如, 默认的会话超时时间是两倍的 tickTime。
+initLimit: 默认值是 10, 即 tickTime 属性值的 10 倍。它用于配置允许 followers 连接并同步到 leader 的最大时间。如果 ZooKeeper 管理的数据量很大的话可以增加这个值。
+syncLimit: 默认值是 5, 即 tickTime 属性值的 5 倍。它用于配置leader 和 followers 间进行心跳检测的最大延迟时间。如果在设置的时间内 followers 无法与 leader 进行通信, 那么 followers 将会被丢弃。
+dataDir: ZooKeeper 用来存储内存数据库快照的目录, 并且除非指定其它目录, 否则数据库更新的事务日志也将会存储在该目录下。建议配置 dataLogDir 参数来指定 ZooKeeper 事务日志的存储目录。
+clientPort: 服务器监听客户端连接的端口, 也即客户端尝试连接的端口, 默认值是 2181。
+maxClientCnxns: 在 socket 级别限制单个客户端与单台服务器之前的并发连接数量, 可以通过 IP 地址来区分不同的客户端。它用来防止某种类型的 DoS 攻击, 包括文件描述符耗尽。默认值是 60。将其设置为 0 将完全移除并发连接数的限制。
+autopurge.snapRetainCount: 配置 ZooKeeper 在自动清理的时候需要保留的数据文件快照的数量和对应的事务日志文件, 默认值是 3
+autopurge.purgeInterval: 和参数 autopurge.snapRetainCount 配套使用, 用于配置 ZooKeeper 自动清理文件的频率, 默认值是 1, 即默认开启自动清理功能, 设置为 0 则表示禁用自动清理功能。
+
+启动 ZooKeeper 服务
+zkServer.cmd
+
+验证 ZooKeeper 服务
+telnet 127.0.0.1 2181
+
+或C:\Users\user>jps
+7364 ZooKeeperMain
+12304 Jps
+5328 RemoteMavenServer
+13004 DubboProviderApplication
+14848
+10452 Launcher
+3304 DubboConsumerApplication
+14544 QuorumPeerMain
+
+##集群模式 ###zoo.cfg配置 在 master 机器上, 在单机模式的配置文件下增加了最后 5 行配置:
+
+ticketTime=2000
+clientPort=2181
+dataDir=/opt/zookeeper/data
+dataLogDir=/opt/zookeeper/logs
+
+initLimit=10
+syncLimit=5
+server.1=master:2888:3888
+server.2=slave01:2888:3888
+server.3=slave02:2888:3888
+
+二 项目部署（Spring boot + dubbo）
+依赖jar
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>dubbo</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.wehotel</groupId>
+            <artifactId>dubbo-api</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.jboss.netty</groupId>
+                    <artifactId>netty</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-framework</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.101tec</groupId>
+            <artifactId>zkclient</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.dubbo.springboot</groupId>
+            <artifactId>spring-boot-starter-dubbo</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+1 dubbo-api (中间服务)
+提供接口：DemoService
+2 dubbo-provider(服务提供者)
+
+properties配置
+#dubbo提供者的别名，只是个标识
+spring.dubbo.application.name=dubbo-provider
+#zk地址
+spring.dubbo.registry.address=zookeeper://localhost:2181
+#dubbo协议
+#spring.dubbo.protocol.name=dubbo
+#duboo端口号
+#spring.dubbo.protocol.port=20880
+
+实现接口：DemoServiceImpl
+添加注解：import com.alibaba.dubbo.config.annotation.Service;
+@Service(interfaceClass = DemoService.class) 声明为dubbo服务
+
+启动
+@SpringBootApplication
+@EnableDubbo
+@DubboComponentScan("com.wehotel.*")
+
+3 dubbo-consumer(服务消费者)
+
+properties配置
+#dubbo提供者的别名，只是个标识
+spring.dubbo.application.name=dubbo-consumer
+#zk地址
+spring.dubbo.registry.address=zookeeper://localhost:2181
+#dubbo协议
+spring.dubbo.protocol.name=dubbo
+#duboo端口号
+spring.dubbo.protocol.port=20880
+
+使用接口
+@Reference
+DemoService demoService;
+
+启动：
+@SpringBootApplication
+@EnableDubbo
+@DubboComponentScan("com.wehotel.*")
+
+三 dubbo admin
+1.安装，下载地址 https://github.com/apache/incubator-dubbo-admin/tree/master（在master分支）
+2.是一个Spring boot 项目 打成jar运行即可
+3.dubbo.admin.root.password=root  用户名：root     密码： root
+  dubbo.admin.guest.password=guest 用户名：guest  密码： guest
+  http://localhost:7001
